@@ -22,6 +22,7 @@ namespace chess {
             int x;
             int y;
             bool relative;
+            bool jump{false};
 
             [[nodiscard]] CoordVec operator+(CoordVec const &other) const;
             [[nodiscard]] CoordVec operator-(CoordVec const &other) const;
@@ -116,7 +117,7 @@ namespace chess {
         friend bool move_is_legal(chess::Move const &, Board*);
         friend bool in_check(Board const &, ChessColor);
         friend Move build_move_from_input(std::string const &, std::string const &, ChessColor, Board const &);
-        friend std::vector<int> calculate_possible_end_indices(piece::CoordVec, std::vector<piece::CoordVec> const &, ChessColor, Board const &, bool);
+        friend std::vector<int> calculate_possible_end_indices(piece::CoordVec, std::vector<piece::CoordVec> const &, ChessColor, Board const &);
     public:
         Board() = default;
         Board(Board const &);
@@ -157,7 +158,7 @@ namespace chess {
 
     [[nodiscard]] bool move_is_legal(Move const &, Board* = nullptr);
     [[nodiscard]] bool in_check(Board const &, ChessColor);
-    [[nodiscard]] std::vector<int> calculate_possible_end_indices(piece::CoordVec, std::vector<piece::CoordVec> const &, ChessColor, Board const &, bool = false);
+    [[nodiscard]] std::vector<int> calculate_possible_end_indices(piece::CoordVec, std::vector<piece::CoordVec> const &, ChessColor, Board const &);
     [[nodiscard]] bool has_legal_moves(piece::Piece*, int, Board const &);
     [[nodiscard]] Move build_move_from_input(std::string const &, std::string const &, ChessColor, Board const &);
     void setup_board(Board &);

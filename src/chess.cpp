@@ -6,6 +6,7 @@
 #include <utility>
 #include "../include/log.h"
 #include "../include/math_utils.h"
+#include "../include/common.h"
 
 chess::ChessColor chess::other_chess_color(chess::ChessColor const color) {
     if (color == LIGHT){
@@ -15,13 +16,13 @@ chess::ChessColor chess::other_chess_color(chess::ChessColor const color) {
 }
 
 chess::piece::CoordVec chess::piece::CoordVec::operator+(const chess::piece::CoordVec &other) const {
-    return {x + other.x, y + other.y, relative};
+    return {x + other.x, y + other.y, relative, jump};
 }
 chess::piece::CoordVec chess::piece::CoordVec::operator-(const chess::piece::CoordVec &other) const {
-    return {x - other.x, y - other.y, relative};
+    return {x - other.x, y - other.y, relative, jump};
 }
 chess::piece::CoordVec chess::piece::CoordVec::operator*(const int fac) const {
-    return {x * fac, y * fac, relative};
+    return {x * fac, y * fac, relative, jump};
 }
 bool chess::piece::CoordVec::same_position(const chess::piece::CoordVec &other) const noexcept {
     return x == other.x && y == other.y;
@@ -266,46 +267,13 @@ bool chess::move_is_legal(const chess::Move &move, Board* override_board) {
             return;
         }
 
-        bool can_move_to_field{false};
+
+
         auto const end_piece_ptr{board.piece_ptr(atomic_move.end_index)};
         auto const &moves{(end_piece_ptr != nullptr && end_piece_ptr->color() != by) ? piece_ptr->attack_coords() : piece_ptr->move_coords()};
-        auto const &start_position{Board::calculate_position(atomic_move.start_index)};
-        auto const &end_position{Board::calculate_position(atomic_move.end_index)};
 
-        std::for_each(moves.begin(), moves.end(), [&can_move_to_field, &start_position, &end_position, &atomic_move](chess::piece::CoordVec coord_vec){
-            if (atomic_move.by == DARK) {
-                coord_vec = coord_vec * -1;
-            }
-
-            if (!coord_vec.relative) {
-                auto const calculated_position{start_position + coord_vec};
-
-                if (calculated_position.same_position(end_position)) {
-                    can_move_to_field = true;
-                    return;
-                }
-            }
-            else {
-                auto const diff_vector{end_position - start_position};
-
-                auto const fac{coord_vec.x / diff_vector.x};
-                auto const calculated_position{(coord_vec * fac) + start_position};
-
-                if (calculated_position.same_position(end_position)) {
-                    auto current_position{start_position + coord_vec};
-
-                    while (!current_position.same_position(end_position)) {
-                        if (board.piece_ptr(current_position.x, current_position.y) != nullptr) {
-                            return;
-                        }
-
-                        current_position = current_position + coord_vec;
-                    }
-
-                    can_move_to_field = true;
-                }
-            }
-        });
+        auto const possible_end_indices{calculate_possible_end_indices(board.calculate_position(atomic_move.start_index), moves, atomic_move.by, board)};
+        bool const can_move_to_field{common::contains(possible_end_indices, atomic_move.end_index)};
 
         if (!can_move_to_field) {
             consistent_atomics = false;
@@ -354,7 +322,6 @@ bool chess::in_check(const chess::Board &board, chess::ChessColor color) {
             if (!attacks.empty()) {
                 std::for_each(attacks.begin(), attacks.end(), [&board, &in_check, &pair](int const index) {
                     auto start_v{Board::calculate_position(pair.first)};
-                    auto end_v{Board::calculate_position(index)};
 
                     auto* piece{board.piece_ptr(index)};
 
@@ -375,14 +342,14 @@ bool chess::in_check(const chess::Board &board, chess::ChessColor color) {
     return in_check;
 }
 
-std::vector<int> chess::calculate_possible_end_indices(piece::CoordVec start, const std::vector<piece::CoordVec> &moves, ChessColor color, Board const &board, bool const jump) {
+std::vector<int> chess::calculate_possible_end_indices(piece::CoordVec start, const std::vector<piece::CoordVec> &moves, ChessColor color, Board const &board) {
     std::vector<int> end_indices;
 
     if (moves.empty()) {
         return end_indices;
     }
 
-    std::for_each(moves.begin(), moves.end(), [&end_indices, &start, &color, &board, &jump](chess::piece::CoordVec vect) {
+    std::for_each(moves.begin(), moves.end(), [&end_indices, &start, &color, &board](chess::piece::CoordVec vect) {
         if (color == DARK) {
             vect = vect * -1;
         }
@@ -405,7 +372,7 @@ std::vector<int> chess::calculate_possible_end_indices(piece::CoordVec start, co
                         end_indices.push_back(end_i);
                     }
 
-                    if (!jump) {
+                    if (!vect.jump) {
                         break;
                     }
                 }
@@ -432,7 +399,11 @@ std::vector<int> chess::calculate_possible_end_indices(piece::CoordVec start, co
                 while (true) {
                     chess::piece::CoordVec const current_pos{start.x + (step_x * step), start.y + (step_y * step)};
 
-                    if (!jump || end_pos.same_position(current_pos)) {
+                    if (current_pos.x < 1 || current_pos.x > 8 || current_pos.y < 1 || current_pos.y > 8) {
+                        break;
+                    }
+
+                    if (!vect.jump || end_pos.same_position(current_pos)) {
                         int const index{board.calculate_index(current_pos.x, current_pos.y)};
                         auto* piece_ptr{board.piece_ptr(index)};
 
@@ -442,7 +413,7 @@ std::vector<int> chess::calculate_possible_end_indices(piece::CoordVec start, co
                         }
                     }
 
-                    if (current_pos.x < 1 || current_pos.x > 8 || current_pos.y < 1 || current_pos.y > 8 || current_pos.same_position(end_pos)) {
+                    if (current_pos.same_position(end_pos)) {
                         break;
                     }
 

@@ -10,16 +10,11 @@ FetchContent_Declare(
         GIT_TAG        v3.3.2)
 FetchContent_MakeAvailable(Catch2)
 
-file(GLOB SRC
-        src/*.cpp)
-file(GLOB INCL
-        include/*.h
-        include/*.hpp)
+add_executable(chess
+        include/chess.h include/log.h include/math_utils.h
+        src/main.cpp src/chess.cpp src/log.cpp src/math_utils.cpp include/common.h)
 
-add_executable(chess ${SRC} ${INCL})
-
-file(GLOB TEST_SOURCES
-        tests/*.cpp)
+file(GLOB TEST_SOURCES tests/*.cpp tests/*.h)
 
 add_executable(tests ${TEST_SOURCES})
 target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)
