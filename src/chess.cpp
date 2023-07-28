@@ -301,6 +301,7 @@ bool chess::move_is_legal(const chess::Move &move, Board* override_board) {
         auto piece_ptr = std::move(copy.m_piece[atomic.start_index]);
         copy.m_piece.erase(atomic.start_index);
         piece_ptr->move();
+        copy.m_piece.erase(atomic.end_index);
         copy.m_piece.insert({atomic.end_index, std::move(piece_ptr)});
     });
 
