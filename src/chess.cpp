@@ -247,20 +247,26 @@ bool chess::move_is_legal(const chess::Move &move, Board* override_board) {
     }
 
     bool consistent_atomics{true};
-    std::for_each(move.begin(), move.end(), [&consistent_atomics](chess::AtomicMove const &atomic_move) {
-        static chess::ChessColor const by = atomic_move.by;
-        static chess::Board const &board = atomic_move.board;
+    auto const first_by{move.empty() ? LIGHT : move[0].by};
+    auto* const first_board{move.empty() ? nullptr : &move[0].board};
 
-        if (atomic_move.by != by || atomic_move.board != board) {
+    std::for_each(move.begin(), move.end(), [&consistent_atomics, &first_by, &first_board](chess::AtomicMove const &atomic_move) {
+
+        if (atomic_move.by != first_by || &atomic_move.board != first_board) {
             consistent_atomics = false;
 
-            debug("Inconsistent color or board.");
+            if (atomic_move.by != first_by) {
+                debug("Inconsistent color.");
+            }
+            else {
+                debug("Inconsistent board.");
+            }
             return;
         }
 
-        auto const piece_ptr{board.piece_ptr(atomic_move.start_index)};
+        auto const piece_ptr{atomic_move.board.piece_ptr(atomic_move.start_index)};
 
-        if (piece_ptr == nullptr || piece_ptr->color() != by) {
+        if (piece_ptr == nullptr || piece_ptr->color() != first_by) {
             consistent_atomics = false;
 
             debug("No piece at start position found!");
@@ -269,10 +275,10 @@ bool chess::move_is_legal(const chess::Move &move, Board* override_board) {
 
 
 
-        auto const end_piece_ptr{board.piece_ptr(atomic_move.end_index)};
-        auto const &moves{(end_piece_ptr != nullptr && end_piece_ptr->color() != by) ? piece_ptr->attack_coords() : piece_ptr->move_coords()};
+        auto const end_piece_ptr{atomic_move.board.piece_ptr(atomic_move.end_index)};
+        auto const &moves{(end_piece_ptr != nullptr && end_piece_ptr->color() != first_by) ? piece_ptr->attack_coords() : piece_ptr->move_coords()};
 
-        auto const possible_end_indices{calculate_possible_end_indices(board.calculate_position(atomic_move.start_index), moves, atomic_move.by, board)};
+        auto const possible_end_indices{calculate_possible_end_indices(atomic_move.board.calculate_position(atomic_move.start_index), moves, atomic_move.by, atomic_move.board)};
         bool const can_move_to_field{common::contains(possible_end_indices, atomic_move.end_index)};
 
         if (!can_move_to_field) {

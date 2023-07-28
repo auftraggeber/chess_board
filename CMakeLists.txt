@@ -12,7 +12,7 @@ FetchContent_MakeAvailable(Catch2)
 
 add_executable(chess
         include/chess.h include/log.h include/math_utils.h
-        src/main.cpp src/chess.cpp src/log.cpp src/math_utils.cpp include/common.h)
+        src/main.cpp src/chess.cpp src/log.cpp src/math_utils.cpp include/common.h src/ui.cpp)
 
 file(GLOB TEST_SOURCES tests/*.cpp tests/*.h)
 

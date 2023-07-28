@@ -5,10 +5,10 @@
 #ifndef CHESS_UI_H
 #define CHESS_UI_H
 
-namespace ui {
+#include "chess.h"
 
-
-
+namespace chess::ui {
+    chess::Move ask_for_move(ChessColor, Board const &);
 }
 
 #endif //CHESS_UI_H
